@@ -216,6 +216,14 @@ def aggregate(args: argparse.Namespace) -> None:
             logger.error(f"exit because cannot fetch any proxy node, group=[{k}]")
             continue
 
+        # Harbor: 先过滤太慢的中转域名（默认 forwarded.frnhk.xyz、gosthk.site），
+        # 再随机抽、再测活。BLOCKED_SERVERS 环境变量可改，逗号分隔。
+        blocked = [s.strip() for s in os.environ.get("BLOCKED_SERVERS", "forwarded.frnhk.xyz,gosthk.site").split(",") if s.strip()]
+        if blocked:
+            before = len(proxies)
+            proxies = [x for x in proxies if not any(b in str(x.get("server", "")) for b in blocked)]
+            logger.info(f"filter blocked servers: [{before}] -> [{len(proxies)}], group=[{k}]")
+
         # Harbor: 先随机抽 SAMPLE_COUNT 个（默认 100），再只对抽中的测活。
         # 全量测活太久、客户端内存大，且规则默认选延迟最低节点会让所有人挤在同一个节点上。
         try:
