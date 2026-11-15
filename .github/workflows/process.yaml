@@ -1,8 +1,7 @@
 name: Process
 on:
   schedule:
-    - cron: "05 03 * * *"
-    - cron: "05 11 * * *"
+    - cron: "17 */6 * * *"
   workflow_dispatch:
 
 env:
@@ -13,7 +12,7 @@ env:
   SUBSCRIBE_CONF: ${{ secrets.SUBSCRIBE_CONF }}
 
   # token
-  PUSH_TOKEN: ${{ secrets.PUSH_TOKEN }}
+  PUSH_TOKEN: ${{ secrets.GIST_PAT }}
 
   # not check connective
   SKIP_ALIVE_CHECK: ${{ vars.SKIP_ALIVE_CHECK }}
@@ -26,10 +25,12 @@ env:
 
   # include spwcial protocols, such vless hysteria2 and hysteria
   ENABLE_SPECIAL_PROTOCOLS: ${{ vars.ENABLE_SPECIAL_PROTOCOLS }}
+  SAMPLE_COUNT: "100"
 
 jobs:
   process:
     runs-on: ubuntu-latest
+    timeout-minutes: 360
 
     steps:
       - name: Checkout

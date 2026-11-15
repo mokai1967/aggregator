@@ -8,6 +8,7 @@ import base64
 import itertools
 import json
 import os
+import random
 import re
 import sys
 import time
@@ -238,6 +239,17 @@ def aggregate(args: argparse.Namespace) -> None:
         if len(nochecks) <= 0:
             logger.error(f"cannot fetch any proxy, group=[{k}], cost: {time.time()-starttime:.2f}s")
             continue
+
+        # Harbor: 随机采样 —— 每次只返回 SAMPLE_COUNT 个存活节点（默认 100）。
+        # 全量返回会导致客户端测活耗时过长、内存占用过大，且规则默认选延迟最低节点会让所有人挤在同一个节点上。
+        try:
+            sample_count = int(os.environ.get("SAMPLE_COUNT", "100") or 100)
+        except ValueError:
+            sample_count = 100
+        if sample_count > 0 and len(nochecks) > sample_count:
+            sampled = len(nochecks)
+            nochecks = random.sample(nochecks, sample_count)
+            logger.info(f"random sample proxies: [{sampled}] -> [{len(nochecks)}], group=[{k}]")
 
         group = process_config.groups.get(k)
         if not group:
