@@ -216,6 +216,17 @@ def aggregate(args: argparse.Namespace) -> None:
             logger.error(f"exit because cannot fetch any proxy node, group=[{k}]")
             continue
 
+        # Harbor: 先随机抽 SAMPLE_COUNT 个（默认 100），再只对抽中的测活。
+        # 全量测活太久、客户端内存大，且规则默认选延迟最低节点会让所有人挤在同一个节点上。
+        try:
+            sample_count = int(os.environ.get("SAMPLE_COUNT", "100") or 100)
+        except ValueError:
+            sample_count = 100
+        if sample_count > 0 and len(proxies) > sample_count:
+            sampled = len(proxies)
+            proxies = random.sample(proxies, sample_count)
+            logger.info(f"random sample proxies: [{sampled}] -> [{len(proxies)}], group=[{k}]")
+
         workspace = os.path.join(PATH, "clash")
         filename = "config.yaml"
         starttime = time.time()
@@ -239,17 +250,6 @@ def aggregate(args: argparse.Namespace) -> None:
         if len(nochecks) <= 0:
             logger.error(f"cannot fetch any proxy, group=[{k}], cost: {time.time()-starttime:.2f}s")
             continue
-
-        # Harbor: 随机采样 —— 每次只返回 SAMPLE_COUNT 个存活节点（默认 100）。
-        # 全量返回会导致客户端测活耗时过长、内存占用过大，且规则默认选延迟最低节点会让所有人挤在同一个节点上。
-        try:
-            sample_count = int(os.environ.get("SAMPLE_COUNT", "100") or 100)
-        except ValueError:
-            sample_count = 100
-        if sample_count > 0 and len(nochecks) > sample_count:
-            sampled = len(nochecks)
-            nochecks = random.sample(nochecks, sample_count)
-            logger.info(f"random sample proxies: [{sampled}] -> [{len(nochecks)}], group=[{k}]")
 
         group = process_config.groups.get(k)
         if not group:
